@@ -41,24 +41,24 @@ export default function Preloader() {
                     <motion.span
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="eyebrow mb-6"
+                        className="eyebrow mb-8"
                     >
-                        Capture Studio
+                        Capture / Studio
                     </motion.span>
 
-                    <div className="relative h-[1.1em] overflow-hidden">
-                        <motion.span className="display block text-[22vw] leading-none text-foreground sm:text-[16vw]">
-                            {count}
-                            <span className="text-accent">%</span>
-                        </motion.span>
-                    </div>
+                    <span className="display block text-center text-[26vw] leading-none text-foreground sm:text-[18vw] lg:text-[13rem]">
+                        {count}
+                        <span className="text-accent">%</span>
+                    </span>
 
-                    <div className="mt-8 h-px w-56 overflow-hidden bg-line">
+                    <div className="mt-10 h-[3px] w-64 overflow-hidden rounded-full bg-line">
                         <motion.div
-                            className="h-full bg-accent"
+                            className="h-full rounded-full bg-accent"
                             style={{ width: `${count}%` }}
                         />
                     </div>
+
+                    <span className="eyebrow mt-6">Loading experience</span>
                 </motion.div>
             )}
         </AnimatePresence>
