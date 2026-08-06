@@ -145,7 +145,7 @@ export function SiteNav() {
                         <span className="grid size-7 place-items-center rounded-md bg-accent">
                             <span className="text-[15px] font-extrabold leading-none text-accent-fg">C</span>
                         </span>
-                        <span className="text-[15px] font-extrabold tracking-tight">Capture</span>
+                        <span className="text-[15px] font-extrabold tracking-tight">Captured</span>
                     </Link>
 
                     <nav aria-label="Primary" className="hidden lg:block">

@@ -19,9 +19,9 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://capturestudio.co"),
-  title: "Capture Studio — Video Production & Photography",
+  title: "Captured Studio — Video Production & Photography",
   description:
-    "Capture Studio is a New York video production and photography company. Brand films, commercials, documentary and campaign content, crewed and finished in house.",
+    "Captured Studio is a New York video production and photography company. Brand films, commercials, documentary and campaign content, crewed and finished in house.",
   keywords: [
     "video production company",
     "brand films",
@@ -31,11 +31,11 @@ export const metadata: Metadata = {
     "New York video production",
   ],
   openGraph: {
-    title: "Capture Studio — Video Production & Photography",
+    title: "Captured Studio — Video Production & Photography",
     description:
       "Brand films, commercials, documentary and campaign content, crewed and finished in house.",
     url: "/",
-    siteName: "Capture Studio",
+    siteName: "Captured Studio",
     type: "website",
   },
   twitter: {
