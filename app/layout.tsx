@@ -1,40 +1,47 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Archivo } from "next/font/google";
+import { Manrope, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+/* Manrope carries everything. Modern and clean, a touch warmer than the
+   default neutral grotesques, and it holds up at display sizes. */
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
+  display: "swap",
 });
 
+/* Mono is used only for small eyebrows and figures. */
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-});
-
-// Heavy grotesque for the giant display headlines
-const archivo = Archivo({
-  variable: "--font-display",
-  weight: ["700", "800", "900"],
-  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Capture Studio — Visual Poetry in Motion",
+  metadataBase: new URL("https://capturestudio.co"),
+  title: "Capture Studio — Video Production & Photography",
   description:
-    "Capture Studio is a videography, photography and marketing house turning moments into motion. Discover the artistry of moments captured in motion.",
+    "Capture Studio is a New York video production and photography company. Brand films, commercials, documentary and campaign content, crewed and finished in house.",
   keywords: [
-    "videography",
-    "photography",
-    "marketing",
-    "creative studio",
-    "video production",
-    "visual storytelling",
+    "video production company",
+    "brand films",
+    "commercial production",
+    "photography studio",
+    "documentary production",
+    "New York video production",
   ],
   openGraph: {
-    title: "Capture Studio",
-    description: "Visual poetry in motion — videography, photography, marketing.",
+    title: "Capture Studio — Video Production & Photography",
+    description:
+      "Brand films, commercials, documentary and campaign content, crewed and finished in house.",
+    url: "/",
+    siteName: "Capture Studio",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Capture Studio — Video Production & Photography",
+    description: "Brand films, commercials and campaign content from New York.",
   },
 };
 
@@ -44,13 +51,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} h-full antialiased`}
-    >
-      <body className="min-h-full bg-background text-foreground">
-        {children}
-      </body>
+    <html lang="en" className={`${manrope.variable} ${geistMono.variable}`}>
+      <body>{children}</body>
     </html>
   );
 }
