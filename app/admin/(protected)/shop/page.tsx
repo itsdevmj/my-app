@@ -51,12 +51,20 @@ export default async function AdminShopPage({ searchParams }: PageProps) {
                         Manage pricing, availability, images and storefront categories.
                     </p>
                 </div>
-                <Link
-                    href="/shop"
-                    className="rounded-full border border-line-strong px-4 py-2 text-xs font-bold tracking-tight text-fg-muted transition-colors hover:border-accent hover:text-accent"
-                >
-                    View live shop ↗
-                </Link>
+                <div className="flex flex-wrap items-center gap-3">
+                    <Link
+                        href="/admin/shop/new"
+                        className="rounded-full bg-accent px-4 py-2 text-xs font-bold tracking-tight text-accent-fg transition-transform hover:scale-[1.03]"
+                    >
+                        + Add product
+                    </Link>
+                    <Link
+                        href="/shop"
+                        className="rounded-full border border-line-strong px-4 py-2 text-xs font-bold tracking-tight text-fg-muted transition-colors hover:border-accent hover:text-accent"
+                    >
+                        View live shop ↗
+                    </Link>
+                </div>
             </header>
 
             <div className="mt-7 grid grid-cols-3 gap-3">

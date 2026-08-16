@@ -71,6 +71,7 @@ type LocalDoc = {
     studio?: Partial<StudioSettings>;
     projects?: StoredProject[];
     products?: Record<string, ProductPatch>;
+    customProducts?: Product[];
     deletedProducts?: string[];
     archiveShots?: StoredShot[];
     categories?: string[];
@@ -167,8 +168,8 @@ function legacyRowToOverride(row: LegacyOverrideRow): ProductPatch {
     return out;
 }
 
-function applyOverrides(overrides: Record<string, ProductPatch>): Product[] {
-    return PRODUCTS.map((product) => {
+function applyOverrides(overrides: Record<string, ProductPatch>, source: readonly Product[] = PRODUCTS): Product[] {
+    return source.map((product) => {
         const patch = overrides[product.handle];
         if (!patch) return product;
         return {
@@ -396,9 +397,10 @@ export async function getProducts(): Promise<Product[]> {
         return ((data ?? []) as unknown as ProductRow[]).map(rowToProduct);
     }
 
-    const { products, deletedProducts } = await localRead();
+    const { products, customProducts, deletedProducts } = await localRead();
     const deleted = new Set(deletedProducts ?? []);
-    return applyOverrides(products ?? {}).filter((product) => !deleted.has(product.handle));
+    return applyOverrides(products ?? {}, [...PRODUCTS, ...(customProducts ?? [])])
+        .filter((product) => !deleted.has(product.handle));
 }
 
 export async function getProduct(handle: string): Promise<Product | undefined> {
@@ -664,7 +666,7 @@ export async function saveProductRecord(handle: string, patch: ProductPatch) {
         return;
     }
 
-    assertKnownHandle(handle);
+    if (!(await getProduct(handle))) throw new Error("That product no longer exists.");
     const current = await localRead();
     await localWrite({
         ...current,
@@ -697,16 +699,43 @@ export async function removeProductRecord(handle: string): Promise<string[]> {
         return Array.isArray(data.images) ? data.images.map(String) : [...currentProduct.images];
     }
 
-    assertKnownHandle(handle);
     const current = await localRead();
+    const customProducts = (current.customProducts ?? []).filter((product) => product.handle !== handle);
     const overrides = { ...current.products };
     delete overrides[handle];
     await localWrite({
         ...current,
         products: overrides,
+        customProducts,
         deletedProducts: [...new Set([...(current.deletedProducts ?? []), handle])],
     });
     return [...currentProduct.images];
+}
+
+export async function addProductRecord(product: Product) {
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(product.handle)) {
+        throw new Error("Use a simple lowercase product handle, such as studio-lut-pack.");
+    }
+    if (!product.name.trim() || product.images.length === 0) {
+        throw new Error("A product name and at least one image are required.");
+    }
+
+    const existing = await getProducts();
+    if (existing.some((item) => item.handle === product.handle)) {
+        throw new Error("That product handle is already in use.");
+    }
+
+    if (isSupabaseConfigured()) {
+        const { error } = await supabaseAdmin().from("products").insert(productToRow(product, existing.length));
+        if (error) throw new Error(`Adding the product failed: ${error.message}`);
+        return;
+    }
+
+    const current = await localRead();
+    await localWrite({
+        ...current,
+        customProducts: [...(current.customProducts ?? []), product],
+    });
 }
 
 export async function addShopCategory(name: string) {

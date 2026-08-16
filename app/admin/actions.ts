@@ -21,6 +21,7 @@ import {
 } from "@/app/lib/admin-auth";
 import {
     addArchiveShot,
+    addProductRecord,
     addProject,
     addShopCategory,
     getProduct,
@@ -38,6 +39,7 @@ import {
     saveStudio,
     updateProject,
 } from "@/app/lib/content-store";
+import type { Product } from "@/app/lib/shop";
 import {
     UploadError,
     deleteManagedUpload,
@@ -67,6 +69,20 @@ async function requireAdmin() {
 
 const text = (formData: FormData, key: string) =>
     String(formData.get(key) ?? "").trim();
+
+const slugify = (value: string) =>
+    value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 80);
+
+const list = (value: string) =>
+    value
+        .split(/[,\n]/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .slice(0, 40);
 
 const selectedIds = (formData: FormData) =>
     [...new Set(formData.getAll("ids").map(String).map((id) => id.trim()).filter(Boolean))];
@@ -478,6 +494,75 @@ export async function saveProduct(
         revalidatePath("/admin/shop");
         revalidatePath(`/admin/shop/${handle}`);
         return "Product saved.";
+    });
+}
+
+/** Creates a complete product from the dedicated admin product page. */
+export async function createProduct(
+    _prev: ActionState,
+    formData: FormData,
+): Promise<ActionState> {
+    await requireAdmin();
+
+    return attempt(async () => {
+        const name = text(formData, "name");
+        if (!name) throw new Error("Product name is required.");
+        if (name.length > 100) throw new Error("Product name must be 100 characters or fewer.");
+
+        const handle = slugify(text(formData, "handle") || name);
+        if (!handle) throw new Error("Add a product name or handle.");
+
+        const category = text(formData, "category");
+        const categories = await getShopCategories();
+        if (!category || category.toLowerCase() === "all" || !categories.includes(category)) {
+            throw new Error("Choose a valid product category.");
+        }
+
+        const priceNaira = Number(formData.get("priceNaira"));
+        if (!Number.isFinite(priceNaira) || priceNaira < 0 || priceNaira > 100_000_000) {
+            throw new Error("Price must be a naira amount between 0 and 100,000,000.");
+        }
+
+        const compare = text(formData, "comparePriceNaira");
+        const compareNumber = compare ? Number(compare) : undefined;
+        if (
+            compare &&
+            (!Number.isFinite(compareNumber) || (compareNumber as number) <= priceNaira)
+        ) {
+            throw new Error("The “was” price has to be higher than the price.");
+        }
+
+        const uploaded = await saveOptionalUpload(formData.get("file"));
+        if (!uploaded) throw new Error("Choose a product image before saving.");
+
+        const product: Product = {
+            handle,
+            name,
+            tagline: text(formData, "tagline"),
+            category,
+            priceNaira: Math.round(priceNaira),
+            compareAtPriceNaira: compareNumber ? Math.round(compareNumber) : undefined,
+            badge: text(formData, "badge") || undefined,
+            digital: formData.get("digital") === "on",
+            images: [uploaded],
+            description: text(formData, "description"),
+            includes: list(text(formData, "includes")),
+            optionLabel: text(formData, "optionLabel") || (formData.get("digital") === "on" ? "Licence" : "Size"),
+            options: list(text(formData, "options")),
+            inStock: formData.get("inStock") === "on",
+        };
+
+        try {
+            await addProductRecord(product);
+        } catch (error) {
+            await discardUpload(uploaded);
+            throw error;
+        }
+
+        revalidatePath("/shop", "layout");
+        revalidatePath("/admin/shop");
+        revalidatePath("/admin/shop/new");
+        return `“${name}” added to the shop.`;
     });
 }
 

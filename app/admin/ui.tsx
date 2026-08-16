@@ -148,12 +148,14 @@ export function ImagePicker({
     urlName = "imageUrl",
     allowUrl = true,
     label = "Image",
+    required = false,
 }: {
     current?: string;
     name?: string;
     urlName?: string;
     allowUrl?: boolean;
     label?: string;
+    required?: boolean;
 }) {
     const [preview, setPreview] = useState<string | null>(null);
     const [fileName, setFileName] = useState<string | null>(null);
@@ -187,6 +189,7 @@ export function ImagePicker({
                         ref={inputRef}
                         type="file"
                         name={name}
+                        required={required}
                         accept="image/jpeg,image/png,image/webp,image/avif"
                         onChange={(e) => {
                             const file = e.target.files?.[0];
