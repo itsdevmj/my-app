@@ -67,15 +67,15 @@ export function BuyBox({ product }: { product: Product }) {
             <p className="lede mt-3">{product.tagline}</p>
 
             <div className="mt-6 flex items-baseline gap-3">
-                <span className="h-section text-3xl">{price(product.cents)}</span>
-                {product.compareAtCents && (
+                <span className="h-section text-3xl">{price(product.priceNaira)}</span>
+                {product.compareAtPriceNaira && (
                     <span className="text-base text-fg-dim line-through">
-                        {price(product.compareAtCents)}
+                        {price(product.compareAtPriceNaira)}
                     </span>
                 )}
-                {product.compareAtCents && (
+                {product.compareAtPriceNaira && (
                     <span className="rounded-full bg-accent px-2.5 py-1 text-[11px] font-extrabold tracking-tight text-accent-fg">
-                        Save {price(product.compareAtCents - product.cents)}
+                        Save {price(product.compareAtPriceNaira - product.priceNaira)}
                     </span>
                 )}
             </div>
@@ -140,7 +140,7 @@ export function BuyBox({ product }: { product: Product }) {
                     onClick={() => add(product.handle, variant, qty)}
                     className="flex-1 rounded-full bg-accent px-8 py-4 text-sm font-bold tracking-tight text-accent-fg transition-transform duration-300 enabled:hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
                 >
-                    {product.inStock ? `Add to cart — ${price(product.cents * qty)}` : "Sold out"}
+                    {product.inStock ? `Add to cart — ${price(product.priceNaira * qty)}` : "Sold out"}
                 </button>
             </div>
 

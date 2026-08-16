@@ -2,19 +2,21 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PRODUCTS, findProduct, price } from "@/app/lib/shop";
+import { getProduct, getProducts } from "@/app/lib/content-store";
+import { price } from "@/app/lib/shop";
 import { BuyBox, ProductGallery } from "./buy-box";
 
-/* Catalogue is static, so every product page prerenders at build time. */
-export function generateStaticParams() {
-    return PRODUCTS.map((product) => ({ handle: product.handle }));
+/* Prerender the handles currently present in the configured catalogue backend. */
+export async function generateStaticParams() {
+    const products = await getProducts();
+    return products.map((product) => ({ handle: product.handle }));
 }
 
 type PageProps = { params: Promise<{ handle: string }> };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { handle } = await params;
-    const product = findProduct(handle);
+    const product = await getProduct(handle);
     if (!product) return { title: "Not found" };
 
     return {
@@ -31,13 +33,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ProductPage({ params }: PageProps) {
     const { handle } = await params;
-    const product = findProduct(handle);
+    const product = await getProduct(handle);
     if (!product) notFound();
 
     /* Same category first, then anything else, capped at three. */
+    const catalogue = await getProducts();
     const related = [
-        ...PRODUCTS.filter((p) => p.handle !== handle && p.category === product.category),
-        ...PRODUCTS.filter((p) => p.handle !== handle && p.category !== product.category),
+        ...catalogue.filter((p) => p.handle !== handle && p.category === product.category),
+        ...catalogue.filter((p) => p.handle !== handle && p.category !== product.category),
     ].slice(0, 3);
 
     return (
@@ -103,7 +106,7 @@ export default async function ProductPage({ params }: PageProps) {
                                     </p>
                                 </div>
                                 <span className="shrink-0 text-sm font-extrabold tracking-tight">
-                                    {price(item.cents)}
+                                    {price(item.priceNaira)}
                                 </span>
                             </div>
                         </article>

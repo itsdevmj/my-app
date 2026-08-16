@@ -17,20 +17,31 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ARCHIVE,
     ARCHIVE_CATEGORIES,
-    img,
+    shotImage,
     type ArchiveCategory,
+    type Shot,
 } from "@/app/lib/site";
 import { ButtonPrimary, EASE, Rise, Shell } from "@/app/components/site-ui";
 
 export default function ArchivePage() {
+    const [allShots, setAllShots] = useState<readonly Shot[]>(ARCHIVE);
     const [filter, setFilter] = useState<ArchiveCategory>("All");
     const [openAt, setOpenAt] = useState<number | null>(null);
     const reduce = useReducedMotion();
 
     const shots = useMemo(
-        () => (filter === "All" ? ARCHIVE : ARCHIVE.filter((s) => s.category === filter)),
-        [filter],
+        () => (filter === "All" ? allShots : allShots.filter((s) => s.category === filter)),
+        [allShots, filter],
     );
+
+    useEffect(() => {
+        fetch("/api/archive", { cache: "no-store" })
+            .then((response) => (response.ok ? response.json() : null))
+            .then((data: unknown) => {
+                if (Array.isArray(data) && data.length > 0) setAllShots(data as Shot[]);
+            })
+            .catch(() => undefined);
+    }, []);
 
     const close = useCallback(() => setOpenAt(null), []);
     const step = useCallback(
@@ -66,7 +77,7 @@ export default function ArchivePage() {
             {/* ---- header ---- */}
             <Shell>
                 <p className="eyebrow text-fg-dim">
-                    <span className="text-accent">Archive</span> · {ARCHIVE.length} stills
+                    <span className="text-accent">Archive</span> · {allShots.length} stills
                 </p>
                 <h1 className="h-display mt-5 max-w-3xl text-[clamp(2.25rem,6vw,4rem)]">
                     Every frame we kept
@@ -86,8 +97,8 @@ export default function ArchivePage() {
                         const on = filter === category;
                         const count =
                             category === "All"
-                                ? ARCHIVE.length
-                                : ARCHIVE.filter((s) => s.category === category).length;
+                                ? allShots.length
+                                : allShots.filter((s) => s.category === category).length;
                         return (
                             <button
                                 key={category}
@@ -128,7 +139,7 @@ export default function ArchivePage() {
                                 style={{ aspectRatio: shot.ratio }}
                             >
                                 <Image
-                                    src={img(shot.id, "sm")}
+                                    src={shotImage(shot, "sm")}
                                     alt={`${shot.title} — ${shot.project}`}
                                     fill
                                     sizes="(max-width: 640px) 50vw, (max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
@@ -231,7 +242,7 @@ export default function ArchivePage() {
                                 className="relative h-full w-full"
                             >
                                 <Image
-                                    src={img(active.id, "lg")}
+                                    src={shotImage(active, "lg")}
                                     alt={`${active.title} — ${active.project}`}
                                     fill
                                     sizes="100vw"

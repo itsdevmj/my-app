@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/app/lib/admin-auth";
+import { getProxyAuth } from "@/app/lib/supabase-auth-proxy";
+import { isSupabaseAuthConfigured } from "@/app/lib/supabase";
 
 /**
  * Subdomain routing for shop.capturestudio.co.
@@ -34,19 +36,33 @@ export async function proxy(request: NextRequest) {
        itself, because actions are reachable by direct POST and this check is
        not on that path. */
     if (pathname.startsWith("/admin")) {
+        let authResponse: NextResponse | null = null;
         if (pathname !== "/admin/login") {
-            const authed = await verifySessionToken(
-                request.cookies.get(SESSION_COOKIE)?.value,
-            );
+            let authed: boolean;
+            if (isSupabaseAuthConfigured()) {
+                const auth = await getProxyAuth(request);
+                authed = Boolean(auth.user);
+                authResponse = auth.response;
+            } else {
+                authed = await verifySessionToken(
+                    request.cookies.get(SESSION_COOKIE)?.value,
+                );
+            }
             if (!authed) {
                 const url = request.nextUrl.clone();
                 url.pathname = "/admin/login";
                 url.search = "";
-                return NextResponse.redirect(url);
+                const redirectResponse = NextResponse.redirect(url);
+                authResponse?.cookies
+                    .getAll()
+                    .forEach((cookie) => redirectResponse.cookies.set(cookie));
+                return redirectResponse;
             }
+        } else if (isSupabaseAuthConfigured()) {
+            authResponse = (await getProxyAuth(request)).response;
         }
         /* The admin is never served from the shop subdomain. */
-        return NextResponse.next();
+        return authResponse ?? NextResponse.next();
     }
 
     if (!isShopHost(host)) {

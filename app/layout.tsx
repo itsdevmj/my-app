@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ToasterProvider } from "./components/toaster";
 
 /* Manrope carries everything. Modern and clean, a touch warmer than the
    default neutral grotesques, and it holds up at display sizes. */
@@ -52,7 +53,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${manrope.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+      <body><ToasterProvider>{children}</ToasterProvider></body>
     </html>
   );
 }

@@ -29,7 +29,7 @@ import {
     useSyncExternalStore,
 } from "react";
 import type { ReactNode } from "react";
-import { findProduct, price } from "@/app/lib/shop";
+import { findProduct, price, type Product } from "@/app/lib/shop";
 
 const STORAGE_KEY = "capture-shop-cart";
 
@@ -131,6 +131,8 @@ const sameLine = (l: CartLine, handle: string, variant: string) =>
 
 type CartApi = {
     lines: CartState;
+    /** Live, database-backed product lookup. */
+    lookup: (handle: string) => Product | undefined;
     count: number;
     subtotal: number;
     isOpen: boolean;
@@ -149,9 +151,31 @@ export function useCart() {
     return ctx;
 }
 
-export function CartProvider({ children }: { children: ReactNode }) {
+/**
+ * `catalogue` is the live, database-backed product list, passed down from the
+ * shop layout, so prices and images in the cart reflect admin edits.
+ *
+ * The admin currently edits existing products only, so the seeded handle list
+ * remains a valid lightweight check for persisted cart lines.
+ */
+export function CartProvider({
+    children,
+    catalogue,
+}: {
+    children: ReactNode;
+    catalogue: readonly Product[];
+}) {
     const lines = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
     const [isOpen, setIsOpen] = useState(false);
+
+    const byHandle = useMemo(
+        () => new Map(catalogue.map((product) => [product.handle, product])),
+        [catalogue],
+    );
+    const lookup = useCallback(
+        (handle: string) => byHandle.get(handle),
+        [byHandle],
+    );
 
     const add = useCallback((handle: string, variant: string, qty = 1) => {
         const existing = state.find((l) => sameLine(l, handle, variant));
@@ -179,17 +203,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
         let c = 0;
         let s = 0;
         for (const line of lines) {
-            const product = findProduct(line.handle);
+            const product = byHandle.get(line.handle);
             if (!product) continue;
             c += line.qty;
-            s += product.cents * line.qty;
+            s += product.priceNaira * line.qty;
         }
         return { count: c, subtotal: s };
-    }, [lines]);
+    }, [lines, byHandle]);
 
     const value = useMemo<CartApi>(
         () => ({
             lines,
+            lookup,
             count,
             subtotal,
             isOpen,
@@ -199,7 +224,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             setQty,
             remove,
         }),
-        [lines, count, subtotal, isOpen, add, setQty, remove],
+        [lines, lookup, count, subtotal, isOpen, add, setQty, remove],
     );
 
     return (
@@ -215,7 +240,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
 ------------------------------------------------------------------------- */
 
 function CartDrawer() {
-    const { lines, count, subtotal, isOpen, close, setQty, remove } = useCart();
+    const { lines, lookup, count, subtotal, isOpen, close, setQty, remove } =
+        useCart();
 
     /* Esc to close + scroll lock while open. */
     useEffect(() => {
@@ -291,7 +317,7 @@ function CartDrawer() {
                         ) : (
                             <ul className="flex-1 divide-y divide-line overflow-y-auto">
                                 {lines.map((line) => {
-                                    const product = findProduct(line.handle);
+                                    const product = lookup(line.handle);
                                     if (!product) return null;
                                     return (
                                         <li key={`${line.handle}-${line.variant}`} className="flex gap-4 p-5">
@@ -324,7 +350,7 @@ function CartDrawer() {
                                                         </p>
                                                     </div>
                                                     <span className="shrink-0 text-sm font-bold">
-                                                        {price(product.cents * line.qty)}
+                                                        {price(product.priceNaira * line.qty)}
                                                     </span>
                                                 </div>
 

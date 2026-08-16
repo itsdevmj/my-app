@@ -52,6 +52,8 @@ export const ARCHIVE_CATEGORIES = [
     "Post",
 ] as const;
 
+export const ARCHIVE_RATIOS = ["3 / 2", "2 / 3", "1 / 1"] as const;
+
 export type ArchiveCategory = (typeof ARCHIVE_CATEGORIES)[number];
 
 export type Shot = {
@@ -59,8 +61,13 @@ export type Shot = {
     title: string;
     project: string;
     category: Exclude<ArchiveCategory, "All">;
-    ratio: string;
+    ratio: (typeof ARCHIVE_RATIOS)[number];
+    /** A managed upload or external image URL. Defaults use the Unsplash id. */
+    image?: string;
 };
+
+export const shotImage = (shot: Shot, size: keyof typeof IMG_SIZES = "lg") =>
+    shot.image ?? img(shot.id, size);
 
 export const ARCHIVE: readonly Shot[] = [
     { id: "photo-1485846234645-a62644f84728", title: "Night unit, A-camera", project: "Green Waves", category: "On set", ratio: "3 / 2" },
@@ -99,6 +106,9 @@ export const ARCHIVE: readonly Shot[] = [
 ------------------------------------------------------------------------- */
 
 export type Project = {
+    /** Assigned when a project is created through the admin. Defaults below
+     *  have none, so content-store derives a stable id from the title. */
+    id?: string;
     title: string;
     client: string;
     tag: string;

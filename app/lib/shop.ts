@@ -4,7 +4,7 @@
    The storefront is a separate surface with its own chrome, served from
    app/shop and rewritten onto the `shop.` subdomain by proxy.ts.
 
-   Prices are in whole cents to avoid float rounding. Format with `price()`.
+   Prices are stored as whole naira. Format with `price()`.
    ========================================================================= */
 
 import { img } from "./site";
@@ -16,8 +16,14 @@ import { img } from "./site";
  *   NEXT_PUBLIC_SHOP_URL=https://shop.capturestudio.co
  *   NEXT_PUBLIC_STUDIO_URL=https://capturestudio.co
  */
-export const SHOP_URL = process.env.NEXT_PUBLIC_SHOP_URL ?? "/shop";
-export const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL ?? "/";
+const production = process.env.NODE_ENV === "production";
+
+export const SHOP_URL =
+    process.env.NEXT_PUBLIC_SHOP_URL ??
+    (production ? "https://shop.capturestudio.co" : "/shop");
+export const STUDIO_URL =
+    process.env.NEXT_PUBLIC_STUDIO_URL ??
+    (production ? "https://capturestudio.co" : "/");
 
 export const SHOP_CATEGORIES = [
     "All",
@@ -28,16 +34,16 @@ export const SHOP_CATEGORIES = [
     "Merch",
 ] as const;
 
-export type ShopCategory = (typeof SHOP_CATEGORIES)[number];
+export type ShopCategory = string;
 
 export type Product = {
     handle: string;
     name: string;
     tagline: string;
-    category: Exclude<ShopCategory, "All">;
-    /** Whole cents. */
-    cents: number;
-    compareAtCents?: number;
+    category: ShopCategory;
+    /** Whole Nigerian naira. */
+    priceNaira: number;
+    compareAtPriceNaira?: number;
     badge?: string;
     /** Digital goods skip shipping copy and size pickers. */
     digital: boolean;
@@ -56,8 +62,8 @@ export const PRODUCTS: readonly Product[] = [
         name: "Halide LUT Pack",
         tagline: "24 film emulations, built on our own scans",
         category: "Grading",
-        cents: 8900,
-        compareAtCents: 12000,
+        priceNaira: 8900,
+        compareAtPriceNaira: 12000,
         badge: "Best seller",
         digital: true,
         images: [
@@ -82,7 +88,7 @@ export const PRODUCTS: readonly Product[] = [
         name: "Nightshift LUT Pack",
         tagline: "Low-light grades that keep the blacks clean",
         category: "Grading",
-        cents: 6900,
+        priceNaira: 6900,
         digital: true,
         images: [
             img("photo-1485846234645-a62644f84728"),
@@ -106,7 +112,7 @@ export const PRODUCTS: readonly Product[] = [
         name: "Grain & Halation Pack",
         tagline: "4K scans of real stock, not generated noise",
         category: "Grading",
-        cents: 4900,
+        priceNaira: 4900,
         digital: true,
         images: [
             img("photo-1478720568477-152d9b164e26"),
@@ -129,7 +135,7 @@ export const PRODUCTS: readonly Product[] = [
         name: "Field Sound Library Vol. 1",
         tagline: "320 location recordings from sixteen years of shoots",
         category: "Sound",
-        cents: 12900,
+        priceNaira: 12900,
         badge: "New",
         digital: true,
         images: [
@@ -153,7 +159,7 @@ export const PRODUCTS: readonly Product[] = [
         name: "Golden Hour",
         tagline: "Archival pigment print, Mojave, 2024",
         category: "Prints",
-        cents: 18000,
+        priceNaira: 18000,
         digital: false,
         images: [
             img("photo-1500534623283-312aade485b7"),
@@ -176,7 +182,7 @@ export const PRODUCTS: readonly Product[] = [
         name: "Valley Fog",
         tagline: "Archival pigment print, Big Sur, 2026",
         category: "Prints",
-        cents: 18000,
+        priceNaira: 18000,
         digital: false,
         images: [
             img("photo-1470071459604-3b5ec3a7fe05"),
@@ -199,7 +205,7 @@ export const PRODUCTS: readonly Product[] = [
         name: "Night Unit",
         tagline: "Archival pigment print, Iceland, 2025",
         category: "Prints",
-        cents: 16000,
+        priceNaira: 16000,
         digital: false,
         images: [
             img("photo-1519741497674-611481863552"),
@@ -222,7 +228,7 @@ export const PRODUCTS: readonly Product[] = [
         name: "Frames",
         tagline: "240pp hardcover, sixteen years of stills",
         category: "Books",
-        cents: 6500,
+        priceNaira: 6500,
         badge: "Signed",
         digital: false,
         images: [
@@ -246,7 +252,7 @@ export const PRODUCTS: readonly Product[] = [
         name: "Crew Tee",
         tagline: "The shirt we actually wear on set",
         category: "Merch",
-        cents: 4200,
+        priceNaira: 4200,
         digital: false,
         images: [
             img("photo-1516035069371-29a1b244cc32"),
@@ -269,7 +275,7 @@ export const PRODUCTS: readonly Product[] = [
         name: "Field Cap",
         tagline: "Unstructured six-panel, low profile",
         category: "Merch",
-        cents: 3800,
+        priceNaira: 3800,
         digital: false,
         images: [
             img("photo-1524253482453-3fed8d2fe12b"),
@@ -292,7 +298,7 @@ export const PRODUCTS: readonly Product[] = [
         name: "Camera Tape, 3-pack",
         tagline: "Yellow, white, black — the only three you need",
         category: "Merch",
-        cents: 1800,
+        priceNaira: 1800,
         digital: false,
         images: [
             img("photo-1579165466741-7f35e4755660"),
@@ -315,7 +321,7 @@ export const PRODUCTS: readonly Product[] = [
         name: "In-Camera Transitions",
         tagline: "42 practical whips, wipes and light hits",
         category: "Grading",
-        cents: 3900,
+        priceNaira: 3900,
         digital: true,
         images: [
             img("photo-1489599849927-2ee91cede3ba"),
@@ -339,15 +345,15 @@ export const PRODUCTS: readonly Product[] = [
    HELPERS
 ------------------------------------------------------------------------- */
 
-const FORMATTER = new Intl.NumberFormat("en-US", {
+const FORMATTER = new Intl.NumberFormat("en-NG", {
     style: "currency",
-    currency: "USD",
+    currency: "NGN",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
 });
 
-/** Cents → "$89". Rounded because every price here is whole dollars. */
-export const price = (cents: number) => FORMATTER.format(cents / 100);
+/** Whole naira → "₦8,900". */
+export const price = (priceNaira: number) => FORMATTER.format(priceNaira);
 
 export const findProduct = (handle: string) =>
     PRODUCTS.find((p) => p.handle === handle);

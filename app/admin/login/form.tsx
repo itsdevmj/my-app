@@ -1,17 +1,44 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { login, type LoginState } from "../actions";
+import { ActionPending, useToast } from "@/app/components/toaster";
 
 const INITIAL: LoginState = {};
 
-export function LoginForm() {
+export function LoginForm({ supabaseAuth }: { supabaseAuth: boolean }) {
     const [state, formAction, pending] = useActionState(login, INITIAL);
+    const { push } = useToast();
+
+    useEffect(() => {
+        if (state.error) {
+            push({ announce: false, kind: "error", message: state.error });
+        }
+    }, [push, state]);
 
     return (
         <form action={formAction} className="mt-8">
+            <ActionPending label="Signing in" />
+            {supabaseAuth && (
+                <>
+                    <label htmlFor="email" className="block text-sm font-semibold">
+                        Email
+                    </label>
+                    <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        required
+                        autoComplete="username"
+                        autoFocus
+                        className="mt-2 w-full rounded-lg border border-line-strong bg-surface px-4 py-3 text-sm text-fg outline-none transition-colors placeholder:text-fg-dim focus:border-accent"
+                        placeholder="you@example.com"
+                    />
+                </>
+            )}
+
             <label htmlFor="password" className="block text-sm font-semibold">
-                Password
+                <span className="mt-5 block">Password</span>
             </label>
             <input
                 id="password"
@@ -19,9 +46,9 @@ export function LoginForm() {
                 type="password"
                 required
                 autoComplete="current-password"
-                autoFocus
+                autoFocus={!supabaseAuth}
                 className="mt-2 w-full rounded-lg border border-line-strong bg-surface px-4 py-3 text-sm text-fg outline-none transition-colors placeholder:text-fg-dim focus:border-accent"
-                placeholder="••••••••••••"
+                placeholder="Your password"
             />
 
             {state.error && (

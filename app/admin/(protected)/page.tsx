@@ -1,6 +1,14 @@
 import Link from "next/link";
 import { price } from "@/app/lib/shop";
-import { getLastSaved, getProducts, getProjects, getShots } from "@/app/lib/content-store";
+import {
+    getLastSaved,
+    getProducts,
+    getProjects,
+    getShots,
+    storageBackend,
+} from "@/app/lib/content-store";
+import { uploadBackend } from "@/app/lib/uploads";
+import { isSupabaseAuthConfigured } from "@/app/lib/supabase";
 
 function Stat({
     label,
@@ -31,7 +39,9 @@ export default async function AdminOverviewPage() {
     const inStock = products.filter((p) => p.inStock);
     const soldOut = products.filter((p) => !p.inStock);
     const digital = products.filter((p) => p.digital);
-    const catalogueValue = products.reduce((sum, p) => sum + p.cents, 0);
+    const catalogueValue = products.reduce((sum, p) => sum + p.priceNaira, 0);
+    const backend = storageBackend();
+    const uploads = uploadBackend();
 
     return (
         <div className="mx-auto max-w-5xl">
@@ -42,16 +52,28 @@ export default async function AdminOverviewPage() {
                         ? `Content last edited ${new Date(lastSaved).toLocaleString()}.`
                         : "No edits yet — the site is showing its default content."}
                 </p>
+
+                {/* Which backend is live should never be a guess. */}
+                <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-line-strong px-3 py-1.5 text-xs">
+                    <span
+                        aria-hidden
+                        className={`size-1.5 rounded-full ${backend === "supabase" ? "bg-accent" : "bg-fg-dim"
+                            }`}
+                    />
+                    {backend === "supabase"
+                        ? `Content: Supabase · Images: ${uploads === "cloudinary" ? "Cloudinary" : "local"}`
+                        : "Content: local files — not production ready"}
+                </p>
             </header>
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <Stat label="Products" value={String(products.length)} note={`${digital.length} digital`} />
                 <Stat label="In stock" value={String(inStock.length)} note={`${soldOut.length} sold out`} />
                 <Stat label="Featured work" value={String(projects.length)} note="on the homepage" />
                 <Stat label="Archive stills" value={String(shots.length)} note="in the gallery" />
             </div>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="mt-4 grid grid-cols-2 gap-4">
                 <Stat
                     label="Catalogue value"
                     value={price(catalogueValue)}
@@ -68,16 +90,16 @@ export default async function AdminOverviewPage() {
             <section className="panel mt-8 rounded-xl p-6">
                 <h2 className="text-base font-extrabold tracking-tight">Before this goes live</h2>
                 <ul className="mt-4 space-y-3 text-sm leading-relaxed text-fg-muted">
-                    <li className="flex gap-2.5">
-                        <span aria-hidden className="mt-1.5 size-1.5 shrink-0 rounded-full bg-accent" />
-                        <span>
-                            <strong className="font-semibold text-fg">Storage is the filesystem.</strong>{" "}
-                            Edits are written to <code>.data/content.json</code>. That works in
-                            development and on a single Node server, but not on serverless
-                            hosting or across multiple instances. Swap the read/write functions
-                            in <code>app/lib/content-store.ts</code> for a database.
-                        </span>
-                    </li>
+                    {backend === "local" && (
+                        <li className="flex gap-2.5">
+                            <span aria-hidden className="mt-1.5 size-1.5 shrink-0 rounded-full bg-accent" />
+                            <span>
+                                <strong className="font-semibold text-fg">Content is local.</strong>{" "}
+                                Configure Supabase before deploying so edits persist across
+                                server instances.
+                            </span>
+                        </li>
+                    )}
                     <li className="flex gap-2.5">
                         <span aria-hidden className="mt-1.5 size-1.5 shrink-0 rounded-full bg-accent" />
                         <span>
@@ -86,18 +108,20 @@ export default async function AdminOverviewPage() {
                             will only appear here once a payment provider is wired up.
                         </span>
                     </li>
-                    <li className="flex gap-2.5">
-                        <span aria-hidden className="mt-1.5 size-1.5 shrink-0 rounded-full bg-accent" />
-                        <span>
-                            <strong className="font-semibold text-fg">Single shared password.</strong>{" "}
-                            Fine for one operator. If more than one person needs access, or you
-                            need an audit trail, move to a real auth provider.
-                        </span>
-                    </li>
+                    {!isSupabaseAuthConfigured() && (
+                        <li className="flex gap-2.5">
+                            <span aria-hidden className="mt-1.5 size-1.5 shrink-0 rounded-full bg-accent" />
+                            <span>
+                                <strong className="font-semibold text-fg">Environment login fallback.</strong>{" "}
+                                Configure Supabase Auth before adding more administrators or
+                                relying on managed sessions.
+                            </span>
+                        </li>
+                    )}
                 </ul>
             </section>
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
                 {[
                     { href: "/admin/work", label: "Edit featured work", note: "Homepage projects" },
                     { href: "/admin/shop", label: "Edit prices & stock", note: "Shop catalogue" },

@@ -9,7 +9,8 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { FOOTER_NAV, NAV, STUDIO } from "@/app/lib/site";
+import { FOOTER_NAV, NAV } from "@/app/lib/site";
+import type { StudioSettings } from "@/app/lib/content-store";
 
 export const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -253,7 +254,8 @@ export function SiteNav() {
    FOOTER
 ------------------------------------------------------------------------- */
 
-export function SiteFooter() {
+/** `studio` comes from the database, passed down by app/(site)/layout.tsx. */
+export function SiteFooter({ studio }: { studio: StudioSettings }) {
     return (
         <footer className="border-t border-line pb-10 pt-16">
             <Shell>
@@ -269,7 +271,7 @@ export function SiteFooter() {
                             A video production and photography company in New York. Brand
                             films, commercials and campaign content since 2011.
                         </p>
-                        <p className="mt-6 text-sm text-fg-dim">{STUDIO.address}</p>
+                        <p className="mt-6 text-sm text-fg-dim">{studio.address}</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
@@ -295,7 +297,7 @@ export function SiteFooter() {
 
                 <div className="mt-14 flex flex-col gap-3 border-t border-line pt-7 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-fg-dim">
-                        © {new Date().getFullYear()} {STUDIO.name}. All rights reserved.
+                        © {new Date().getFullYear()} {studio.name}. All rights reserved.
                     </p>
                     <div className="flex gap-6">
                         <Link href="/" className="text-sm text-fg-dim transition-colors hover:text-accent">

@@ -1,13 +1,17 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { PRODUCTS, price } from "@/app/lib/shop";
+import { getProducts, getShopCategories } from "@/app/lib/content-store";
+import { price } from "@/app/lib/shop";
 import { ProductGrid } from "./product-grid";
 
-/* The hero picks whichever product is flagged as the best seller. */
-const HERO = PRODUCTS.find((p) => p.badge === "Best seller") ?? PRODUCTS[0];
+export default async function ShopIndexPage() {
+    /* Live catalogue, so admin edits to price, stock and copy show up here. */
+    const [products, categories] = await Promise.all([getProducts(), getShopCategories()]);
 
-export default function ShopIndexPage() {
+    /* Hero is whichever product is flagged as the best seller. */
+    const HERO = products.find((p) => p.badge === "Best seller") ?? products[0];
+
     return (
         <main className="pb-24">
             {/* ---- hero ---- */}
@@ -32,11 +36,11 @@ export default function ShopIndexPage() {
                             </Link>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-xl font-extrabold tracking-tight">
-                                    {price(HERO.cents)}
+                                    {price(HERO.priceNaira)}
                                 </span>
-                                {HERO.compareAtCents && (
+                                {HERO.compareAtPriceNaira && (
                                     <span className="text-sm text-fg-dim line-through">
-                                        {price(HERO.compareAtCents)}
+                                        {price(HERO.compareAtPriceNaira)}
                                     </span>
                                 )}
                             </div>
@@ -75,14 +79,14 @@ export default function ShopIndexPage() {
                             and books from the archive. Digital orders deliver instantly.
                         </p>
                     </div>
-                    <p className="shrink-0 text-sm text-fg-dim">{PRODUCTS.length} products</p>
+                    <p className="shrink-0 text-sm text-fg-dim">{products.length} products</p>
                 </div>
 
                 {/* useSearchParams needs a Suspense boundary during prerender */}
                 <Suspense
                     fallback={<div className="h-24 animate-pulse rounded-xl bg-surface-2" />}
                 >
-                    <ProductGrid />
+                    <ProductGrid products={products} categories={categories} />
                 </Suspense>
             </section>
 

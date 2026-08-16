@@ -8,10 +8,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SHOP_CATEGORIES, STUDIO_URL } from "@/app/lib/shop";
+import { STUDIO_URL } from "@/app/lib/shop";
 import { useCart } from "./cart";
 
-export function ShopNav() {
+export function ShopNav({ categories }: { categories: readonly string[] }) {
     const { count, open } = useCart();
     const pathname = usePathname();
     const onIndex = pathname === "/shop";
@@ -24,31 +24,34 @@ export function ShopNav() {
                     <p className="eyebrow truncate text-fg-dim">
                         Free delivery on digital · Worldwide shipping on prints
                     </p>
-                    <Link
-                        href={STUDIO_URL}
-                        className="eyebrow hidden shrink-0 text-fg-dim transition-colors hover:text-accent sm:block"
-                    >
-                        ← Capture Studio
-                    </Link>
                 </div>
             </div>
 
             {/* main bar */}
             <div className="border-b border-line bg-surface/85 backdrop-blur-xl">
                 <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-5 py-3.5 sm:px-8">
-                    <Link href="/shop" className="flex shrink-0 items-center gap-2.5">
-                        <span className="grid size-7 place-items-center rounded-md bg-accent">
-                            <span className="text-[15px] font-extrabold leading-none text-accent-fg">C</span>
-                        </span>
-                        <span className="text-[15px] font-extrabold tracking-tight">
-                            Shop
-                        </span>
-                    </Link>
+                    <div className="flex shrink-0 items-center gap-3">
+                        <Link href="/shop" className="flex items-center gap-2.5">
+                            <span className="grid size-7 place-items-center rounded-md bg-accent">
+                                <span className="text-[15px] font-extrabold leading-none text-accent-fg">C</span>
+                            </span>
+                            <span className="text-[15px] font-extrabold tracking-tight">
+                                Shop
+                            </span>
+                        </Link>
+                        <span aria-hidden className="h-5 w-px bg-line-strong" />
+                        <Link
+                            href={STUDIO_URL}
+                            className="text-xs font-bold tracking-tight text-fg-muted transition-colors hover:text-accent sm:text-sm"
+                        >
+                            Studio home
+                        </Link>
+                    </div>
 
                     {/* category links double as the nav, since the catalogue is small */}
                     <nav aria-label="Categories" className="hidden min-w-0 lg:block">
                         <ul className="flex items-center gap-1">
-                            {SHOP_CATEGORIES.filter((c) => c !== "All").map((category) => (
+                            {categories.map((category) => (
                                 <li key={category}>
                                     <Link
                                         href={`/shop?category=${encodeURIComponent(category)}`}
@@ -90,7 +93,7 @@ export function ShopNav() {
     );
 }
 
-export function ShopFooter() {
+export function ShopFooter({ categories }: { categories: readonly string[] }) {
     return (
         <footer className="border-t border-line bg-surface pb-10 pt-14">
             <div className="mx-auto max-w-7xl px-5 sm:px-8">
@@ -111,7 +114,7 @@ export function ShopFooter() {
                     <nav aria-label="Shop categories">
                         <h2 className="text-sm font-extrabold tracking-tight">Shop</h2>
                         <ul className="mt-4 space-y-2.5">
-                            {SHOP_CATEGORIES.filter((c) => c !== "All").map((category) => (
+                            {categories.map((category) => (
                                 <li key={category}>
                                     <Link
                                         href={`/shop?category=${encodeURIComponent(category)}`}
@@ -161,7 +164,7 @@ export function ShopFooter() {
                         © {new Date().getFullYear()} Capture Studio. All rights reserved.
                     </p>
                     <p className="text-sm text-fg-dim">
-                        Prices in USD · Digital goods are non-refundable
+                        Prices in NGN · Digital goods are non-refundable
                     </p>
                 </div>
             </div>

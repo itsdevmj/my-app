@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { isConfigured } from "@/app/lib/admin-auth";
+import { isSupabaseAuthConfigured } from "@/app/lib/supabase";
 import { isAuthed } from "../actions";
 import { LoginForm } from "./form";
 
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 
 export default async function AdminLoginPage() {
     if (await isAuthed()) redirect("/admin");
+    const supabaseAuth = isSupabaseAuthConfigured();
 
     return (
         <main className="grid min-h-screen place-items-center px-5 py-16">
@@ -29,21 +31,13 @@ export default async function AdminLoginPage() {
                     This panel manages the studio site and the shop.
                 </p>
 
-                {!isConfigured() && (
+                {!supabaseAuth && !isConfigured() ? (
                     <div className="mt-6 rounded-lg border border-accent/40 bg-accent/10 p-4">
                         <p className="text-sm font-bold tracking-tight">Not configured yet</p>
-                        <p className="mt-2 text-xs leading-relaxed text-fg-muted">
-                            Add these to <code className="text-fg">.env.local</code> and restart
-                            the dev server. Use long random values — the panel stays locked
-                            until both are set.
-                        </p>
-                        <pre className="mt-3 overflow-x-auto rounded-md bg-bg p-3 text-[11px] leading-relaxed text-fg-muted">
-                            {`ADMIN_PASSWORD=…\nADMIN_SECRET=…`}
-                        </pre>
                     </div>
+                ) : (
+                    <LoginForm supabaseAuth={supabaseAuth} />
                 )}
-
-                <LoginForm />
             </div>
         </main>
     );

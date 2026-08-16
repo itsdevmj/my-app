@@ -42,3 +42,6 @@ next-env.d.ts
 
 # admin content overrides (local filesystem store)
 /.data/
+
+# admin image uploads (local filesystem store)
+/public/uploads/

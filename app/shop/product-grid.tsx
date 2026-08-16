@@ -2,40 +2,54 @@
 
 /* ===========================================================================
    Product grid + category filter.
-   The active category is held in the URL (?category=Prints) so it survives a
-   reload and can be linked to directly from the nav and footer.
+   The catalogue is passed in from the server page so the grid renders whatever
+   is in the database, including admin price and stock edits.
+
+   The active category lives in the URL (?category=Prints) so it survives a
+   reload and can be linked to from the nav and footer.
    ========================================================================= */
 
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
-import {
-    PRODUCTS,
-    SHOP_CATEGORIES,
-    countIn,
-    price,
-    type ShopCategory,
-} from "@/app/lib/shop";
+import { price, type Product, type ShopCategory } from "@/app/lib/shop";
 import { useCart } from "./cart";
 
-function isCategory(value: string | null): value is ShopCategory {
-    return !!value && (SHOP_CATEGORIES as readonly string[]).includes(value);
+function isCategory(value: string | null, categories: readonly string[]): value is ShopCategory {
+    return !!value && categories.includes(value);
 }
 
-export function ProductGrid() {
+export function ProductGrid({
+    products,
+    categories,
+}: {
+    products: readonly Product[];
+    categories: readonly string[];
+}) {
     const router = useRouter();
     const params = useSearchParams();
     const raw = params.get("category");
-    const active: ShopCategory = isCategory(raw) ? raw : "All";
+    const filters = ["All", ...categories];
+    const active: ShopCategory = isCategory(raw, categories) ? raw : "All";
 
-    const products = useMemo(
-        () => (active === "All" ? PRODUCTS : PRODUCTS.filter((p) => p.category === active)),
-        [active],
+    const shown = useMemo(
+        () => (active === "All" ? products : products.filter((p) => p.category === active)),
+        [active, products],
     );
 
+    /* Counts come from the live catalogue, not the static source. */
+    const counts = useMemo(() => {
+        const map = new Map<ShopCategory, number>([["All", products.length]]);
+        for (const product of products) {
+            map.set(product.category, (map.get(product.category) ?? 0) + 1);
+        }
+        return map;
+    }, [products]);
+
     const select = (category: ShopCategory) => {
-        const next = category === "All" ? "/shop" : `/shop?category=${encodeURIComponent(category)}`;
+        const next =
+            category === "All" ? "/shop" : `/shop?category=${encodeURIComponent(category)}`;
         router.replace(next, { scroll: false });
     };
 
@@ -47,7 +61,7 @@ export function ProductGrid() {
                 aria-label="Filter by category"
                 className="flex flex-wrap gap-2 border-b border-line pb-8"
             >
-                {SHOP_CATEGORIES.map((category) => {
+                {filters.map((category) => {
                     const on = active === category;
                     return (
                         <button
@@ -62,7 +76,7 @@ export function ProductGrid() {
                         >
                             {category}
                             <span className={`ml-2 text-xs ${on ? "text-accent-fg/60" : "text-fg-dim"}`}>
-                                {countIn(category)}
+                                {counts.get(category) ?? 0}
                             </span>
                         </button>
                     );
@@ -71,22 +85,20 @@ export function ProductGrid() {
 
             {/* grid */}
             <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {products.map((product) => (
-                    <ProductCard key={product.handle} handle={product.handle} />
+                {shown.map((product) => (
+                    <ProductCard key={product.handle} product={product} />
                 ))}
             </div>
 
-            {products.length === 0 && (
+            {shown.length === 0 && (
                 <p className="py-16 text-center text-fg-dim">Nothing here yet.</p>
             )}
         </>
     );
 }
 
-function ProductCard({ handle }: { handle: string }) {
+function ProductCard({ product }: { product: Product }) {
     const { add } = useCart();
-    const product = PRODUCTS.find((p) => p.handle === handle);
-    if (!product) return null;
 
     return (
         <article className="panel group flex flex-col overflow-hidden rounded-xl">
@@ -128,10 +140,10 @@ function ProductCard({ handle }: { handle: string }) {
                         </p>
                     </div>
                     <div className="shrink-0 text-right">
-                        <p className="text-base font-extrabold tracking-tight">{price(product.cents)}</p>
-                        {product.compareAtCents && (
+                        <p className="text-base font-extrabold tracking-tight">{price(product.priceNaira)}</p>
+                        {product.compareAtPriceNaira && (
                             <p className="text-xs text-fg-dim line-through">
-                                {price(product.compareAtCents)}
+                                {price(product.compareAtPriceNaira)}
                             </p>
                         )}
                     </div>
