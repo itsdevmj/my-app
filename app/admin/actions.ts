@@ -28,6 +28,7 @@ import {
     getProducts,
     getProject,
     getProjects,
+    getShopCategories,
     getShots,
     moveProject,
     removeProject,
