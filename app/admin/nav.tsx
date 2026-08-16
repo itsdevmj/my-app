@@ -25,6 +25,7 @@ const LINKS = [
     { label: "Overview", href: "/admin" },
     { label: "Work", href: "/admin/work" },
     { label: "Shop", href: "/admin/shop" },
+    { label: "Orders", href: "/admin/orders" },
     { label: "Archive", href: "/admin/archive" },
     { label: "Settings", href: "/admin/settings" },
 ] as const;

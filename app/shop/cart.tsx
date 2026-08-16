@@ -30,6 +30,7 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 import { findProduct, price, type Product } from "@/app/lib/shop";
+import { createWhatsAppOrderCode } from "@/app/lib/whatsapp-order";
 
 const STORAGE_KEY = "capture-shop-cart";
 
@@ -141,6 +142,7 @@ type CartApi = {
     add: (handle: string, variant: string, qty?: number) => void;
     setQty: (handle: string, variant: string, qty: number) => void;
     remove: (handle: string, variant: string) => void;
+    whatsappUrl: (lines: readonly CartLine[]) => string | null;
 };
 
 const CartContext = createContext<CartApi | null>(null);
@@ -161,9 +163,11 @@ export function useCart() {
 export function CartProvider({
     children,
     catalogue,
+    sellerPhone,
 }: {
     children: ReactNode;
     catalogue: readonly Product[];
+    sellerPhone: string;
 }) {
     const lines = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
     const [isOpen, setIsOpen] = useState(false);
@@ -199,6 +203,45 @@ export function CartProvider({
         write(state.filter((l) => !sameLine(l, handle, variant)));
     }, []);
 
+    const whatsappUrl = useCallback(
+        (requested: readonly CartLine[]) => {
+            const number = sellerPhone.replace(/\D/g, "").replace(/^00/, "");
+            if (number.length < 8) return null;
+
+            const valid = requested.filter((line) => byHandle.has(line.handle) && line.qty > 0);
+            if (valid.length === 0) return null;
+            const code = createWhatsAppOrderCode(valid);
+            const rows = valid.flatMap((line, index) => {
+                const product = byHandle.get(line.handle);
+                if (!product) return [];
+                return [
+                    `${index + 1}. ${product.name}`,
+                    `   Option: ${line.variant}`,
+                    `   Quantity: ${line.qty}`,
+                    `   Unit price: ${price(product.priceNaira)}`,
+                    `   Line total: ${price(product.priceNaira * line.qty)}`,
+                ];
+            });
+            const total = valid.reduce((sum, line) => {
+                const product = byHandle.get(line.handle);
+                return sum + (product?.priceNaira ?? 0) * line.qty;
+            }, 0);
+            const message = [
+                "Hello Capture Studio, I would like to place this order:",
+                "",
+                ...rows,
+                "",
+                `Order total: ${price(total)}`,
+                "",
+                `Order code: ${code}`,
+                "",
+                "Please confirm availability, delivery and payment details.",
+            ].join("\n");
+            return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+        },
+        [byHandle, sellerPhone],
+    );
+
     const { count, subtotal } = useMemo(() => {
         let c = 0;
         let s = 0;
@@ -223,8 +266,9 @@ export function CartProvider({
             add,
             setQty,
             remove,
+            whatsappUrl,
         }),
-        [lines, lookup, count, subtotal, isOpen, add, setQty, remove],
+        [lines, lookup, count, subtotal, isOpen, add, setQty, remove, whatsappUrl],
     );
 
     return (
@@ -240,8 +284,9 @@ export function CartProvider({
 ------------------------------------------------------------------------- */
 
 function CartDrawer() {
-    const { lines, lookup, count, subtotal, isOpen, close, setQty, remove } =
+    const { lines, lookup, count, subtotal, isOpen, close, setQty, remove, whatsappUrl } =
         useCart();
+    const orderUrl = whatsappUrl(lines);
 
     /* Esc to close + scroll lock while open. */
     useEffect(() => {
@@ -404,16 +449,24 @@ function CartDrawer() {
                                     items are calculated at checkout.
                                 </p>
 
-                                {/* NOTE: no payment backend. Wire this to a real provider
-                    (e.g. a Stripe Checkout session created in a route handler)
-                    before launch — it does nothing on purpose right now. */}
-                                <button
-                                    type="button"
-                                    disabled
-                                    className="mt-4 w-full cursor-not-allowed rounded-full bg-accent px-6 py-3.5 text-sm font-bold tracking-tight text-accent-fg opacity-60"
-                                >
-                                    Checkout — not connected yet
-                                </button>
+                                {orderUrl ? (
+                                    <a
+                                        href={orderUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="mt-4 block w-full rounded-full bg-[#25D366] px-6 py-3.5 text-center text-sm font-bold tracking-tight text-[#071c0e] transition-transform hover:scale-[1.02]"
+                                    >
+                                        Send order on WhatsApp
+                                    </a>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        disabled
+                                        className="mt-4 w-full cursor-not-allowed rounded-full bg-surface-3 px-6 py-3.5 text-sm font-bold text-fg-dim"
+                                    >
+                                        Ordering unavailable
+                                    </button>
+                                )}
                             </div>
                         )}
                     </motion.aside>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getProducts, getShopCategories } from "@/app/lib/content-store";
+import { getProducts, getShopCategories, getStudio } from "@/app/lib/content-store";
 import { CartProvider } from "./cart";
 import { ShopFooter, ShopNav } from "./chrome";
 
@@ -29,10 +29,17 @@ export default async function ShopLayout({
 }: Readonly<{ children: React.ReactNode }>) {
     /* Read once here and hand it to the cart, so the drawer prices from the
        database rather than from the static catalogue. */
-    const [products, categories] = await Promise.all([getProducts(), getShopCategories()]);
+    const [products, categories, studio] = await Promise.all([
+        getProducts(),
+        getShopCategories(),
+        getStudio(),
+    ]);
 
     return (
-        <CartProvider catalogue={products}>
+        <CartProvider
+            catalogue={products}
+            sellerPhone={studio.whatsappNumber || studio.phone}
+        >
             <ShopNav categories={categories} />
             {children}
             <ShopFooter categories={categories} />

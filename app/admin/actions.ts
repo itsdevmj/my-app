@@ -49,6 +49,7 @@ import {
     supabaseAuthServerClient,
 } from "@/app/lib/supabase-auth";
 import { isSupabaseAuthConfigured } from "@/app/lib/supabase";
+import { readWhatsAppOrderCode } from "@/app/lib/whatsapp-order";
 
 export async function isAuthed() {
     if (isSupabaseAuthConfigured()) {
@@ -72,6 +73,25 @@ const selectedIds = (formData: FormData) =>
 
 /** Shape returned by every form action, so the UI can report success/failure. */
 export type ActionState = { ok?: string; error?: string };
+
+export type OrderLookupState = ActionState & {
+    order?: {
+        createdAt: string;
+        lines: Array<{
+            digital: boolean;
+            handle: string;
+            image: string;
+            inStock: boolean;
+            lineTotalNaira: number;
+            name: string;
+            qty: number;
+            unitPriceNaira: number;
+            variant: string;
+            variantValid: boolean;
+        }>;
+        totalNaira: number;
+    };
+};
 
 /** Wraps an action so upload/validation problems surface as text, not a crash. */
 async function attempt(run: () => Promise<string>): Promise<ActionState> {
@@ -184,6 +204,61 @@ export async function logout() {
 }
 
 /* ---------------------------------------------------------------------------
+   WHATSAPP ORDERS
+------------------------------------------------------------------------- */
+
+export async function readWhatsAppOrder(
+    _prev: OrderLookupState,
+    formData: FormData,
+): Promise<OrderLookupState> {
+    await requireAdmin();
+
+    try {
+        const message = text(formData, "message");
+        if (!message) return { error: "Paste the buyer's WhatsApp message first." };
+
+        const payload = readWhatsAppOrderCode(message);
+        const products = await getProducts();
+        const byHandle = new Map(products.map((product) => [product.handle, product]));
+        const missing = payload.items.filter((item) => !byHandle.has(item.handle));
+        if (missing.length > 0) {
+            return {
+                error: `The order references product data that is no longer available: ${missing.map((item) => item.handle).join(", ")}.`,
+            };
+        }
+
+        const lines = payload.items.map((item) => {
+            const product = byHandle.get(item.handle)!;
+            return {
+                handle: product.handle,
+                name: product.name,
+                image: product.images[0],
+                variant: item.variant,
+                variantValid: product.options.includes(item.variant),
+                qty: item.qty,
+                unitPriceNaira: product.priceNaira,
+                lineTotalNaira: product.priceNaira * item.qty,
+                inStock: product.inStock,
+                digital: product.digital,
+            };
+        });
+
+        return {
+            ok: "Order details loaded.",
+            order: {
+                createdAt: payload.createdAt,
+                lines,
+                totalNaira: lines.reduce((sum, line) => sum + line.lineTotalNaira, 0),
+            },
+        };
+    } catch (error) {
+        return {
+            error: error instanceof Error ? error.message : "Reading the order failed.",
+        };
+    }
+}
+
+/* ---------------------------------------------------------------------------
    STUDIO SETTINGS
 ------------------------------------------------------------------------- */
 
@@ -196,13 +271,20 @@ export async function updateStudio(
     return attempt(async () => {
         const name = text(formData, "name");
         const email = text(formData, "email");
+        const phone = text(formData, "phone");
+        const whatsappNumber = text(formData, "whatsappNumber");
         if (!name) throw new Error("Studio name is required.");
         if (!email.includes("@")) throw new Error("That email does not look right.");
+        const whatsappDigits = whatsappNumber.replace(/\D/g, "").replace(/^00/, "");
+        if (whatsappNumber && (whatsappDigits.length < 8 || whatsappDigits.length > 15)) {
+            throw new Error("Use an international WhatsApp number, including country code.");
+        }
 
         await saveStudio({
             name,
             email,
-            phone: text(formData, "phone"),
+            phone,
+            whatsappNumber,
             address: text(formData, "address"),
         });
 

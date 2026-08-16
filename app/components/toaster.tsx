@@ -154,7 +154,7 @@ export function ToasterProvider({ children }: { children: ReactNode }) {
         <PendingContext.Provider value={pendingContext}>
             <ToastContext.Provider value={{ push, dismiss }}>
                 {children}
-                <div className="pointer-events-none fixed inset-x-4 bottom-4 z-[100] flex justify-center sm:inset-x-auto sm:bottom-auto sm:right-5 sm:top-5 sm:w-[min(24rem,calc(100vw-2.5rem))]">
+                <div className="pointer-events-none fixed inset-x-4 top-4 z-[100] flex justify-center sm:inset-x-auto sm:right-5 sm:top-5 sm:w-[min(24rem,calc(100vw-2.5rem))]">
                     <div className="flex w-full flex-col gap-2">
                         <AnimatePresence initial={false} mode="popLayout">
                             {toasts.map((toast) => (

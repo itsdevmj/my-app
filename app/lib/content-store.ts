@@ -34,6 +34,7 @@ export type StudioSettings = {
     name: string;
     email: string;
     phone: string;
+    whatsappNumber: string;
     address: string;
 };
 
@@ -323,12 +324,25 @@ async function seedSupabaseShots() {
 
 export async function getStudio(): Promise<StudioSettings> {
     if (isSupabaseConfigured()) {
-        const { data, error } = await supabaseAdmin()
+        const client = supabaseAdmin();
+        const { data, error } = await client
             .from("settings")
-            .select("name, email, phone, address")
+            .select("name, email, phone, address, whatsapp_number")
             .maybeSingle();
+        if (error?.code === "42703") {
+            const legacy = await client
+                .from("settings")
+                .select("name, email, phone, address")
+                .maybeSingle();
+            if (legacy.error) throw new Error(`Reading settings failed: ${legacy.error.message}`);
+            return { ...STUDIO, ...(legacy.data ?? {}), whatsappNumber: "" };
+        }
         if (error) throw new Error(`Reading settings failed: ${error.message}`);
-        return { ...STUDIO, ...(data ?? {}) };
+        return {
+            ...STUDIO,
+            ...(data ?? {}),
+            whatsappNumber: data?.whatsapp_number ?? "",
+        };
     }
 
     const { studio } = await localRead();
@@ -481,9 +495,20 @@ export async function getLastSaved(): Promise<string | null> {
 
 export async function saveStudio(patch: Partial<StudioSettings>) {
     if (isSupabaseConfigured()) {
+        const row: Record<string, unknown> = { id: true, updated_at: new Date().toISOString() };
+        if ("name" in patch) row.name = patch.name;
+        if ("email" in patch) row.email = patch.email;
+        if ("phone" in patch) row.phone = patch.phone;
+        if ("address" in patch) row.address = patch.address;
+        if ("whatsappNumber" in patch) row.whatsapp_number = patch.whatsappNumber;
         const { error } = await supabaseAdmin()
             .from("settings")
-            .upsert({ id: true, ...patch, updated_at: new Date().toISOString() });
+            .upsert(row);
+        if (error?.code === "42703" && "whatsappNumber" in patch) {
+            throw new Error(
+                "The WhatsApp setting needs the latest Supabase migration before it can be saved.",
+            );
+        }
         if (error) throw new Error(`Saving settings failed: ${error.message}`);
         return;
     }

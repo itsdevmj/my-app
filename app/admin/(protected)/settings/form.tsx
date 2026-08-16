@@ -11,6 +11,14 @@ const FIELDS = [
     { name: "name", label: "Studio name", type: "text", required: true },
     { name: "email", label: "Contact email", type: "email", required: true },
     { name: "phone", label: "Phone", type: "tel", required: false },
+    {
+        name: "whatsappNumber",
+        label: "Order WhatsApp number",
+        type: "tel",
+        required: false,
+        placeholder: "+2348012345678",
+        hint: "Storefront orders are sent here. Use international format with country code.",
+    },
     { name: "address", label: "Address", type: "text", required: false },
 ] as const;
 
@@ -31,8 +39,12 @@ export function SettingsForm({ studio }: { studio: StudioSettings }) {
                             type={field.type}
                             required={field.required}
                             defaultValue={studio[field.name]}
+                            placeholder={"placeholder" in field ? field.placeholder : undefined}
                             className={inputClass}
                         />
+                        {"hint" in field && (
+                            <span className="mt-1.5 block text-xs text-fg-dim">{field.hint}</span>
+                        )}
                     </label>
                 ))}
             </div>

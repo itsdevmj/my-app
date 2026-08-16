@@ -20,6 +20,7 @@ export const STUDIO = {
     name: "Capture Studio",
     email: "hello@capturestudio.co",
     phone: "+1 (416) 555-1234",
+    whatsappNumber: "",
     address: "123 Artistic Lane, Suite 302, New York, NY 10013",
 } as const;
 

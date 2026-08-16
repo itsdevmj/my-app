@@ -52,9 +52,10 @@ export function ProductGallery({ product }: { product: Product }) {
 }
 
 export function BuyBox({ product }: { product: Product }) {
-    const { add } = useCart();
+    const { add, whatsappUrl } = useCart();
     const [variant, setVariant] = useState(product.options[0]);
     const [qty, setQty] = useState(1);
+    const orderUrl = whatsappUrl([{ handle: product.handle, variant, qty }]);
 
     return (
         <div>
@@ -142,6 +143,16 @@ export function BuyBox({ product }: { product: Product }) {
                 >
                     {product.inStock ? `Add to cart — ${price(product.priceNaira * qty)}` : "Sold out"}
                 </button>
+                {product.inStock && orderUrl && (
+                    <a
+                        href={orderUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 rounded-full border border-[#25D366]/70 px-6 py-4 text-center text-sm font-bold tracking-tight text-[#6ee7a1] transition-colors hover:bg-[#25D366] hover:text-[#071c0e] sm:flex-none"
+                    >
+                        Buy on WhatsApp
+                    </a>
+                )}
             </div>
 
             {!product.inStock && (
