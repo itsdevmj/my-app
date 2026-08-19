@@ -13,7 +13,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
-import { price, type Product, type ShopCategory } from "@/app/lib/shop";
+import { price, variants, type Product, type ShopCategory } from "@/app/lib/shop";
 import { useCart } from "./cart";
 
 function isCategory(value: string | null, categories: readonly string[]): value is ShopCategory {
@@ -70,8 +70,8 @@ export function ProductGrid({
                             onClick={() => select(category)}
                             aria-pressed={on}
                             className={`rounded-full border px-4 py-2 text-sm font-semibold tracking-tight transition-colors duration-200 ${on
-                                    ? "border-accent bg-accent text-accent-fg"
-                                    : "border-line-strong text-fg-muted hover:border-accent hover:text-accent"
+                                ? "border-accent bg-accent text-accent-fg"
+                                : "border-line-strong text-fg-muted hover:border-accent hover:text-accent"
                                 }`}
                         >
                             {category}
@@ -157,7 +157,7 @@ function ProductCard({ product }: { product: Product }) {
                     <button
                         type="button"
                         disabled={!product.inStock}
-                        onClick={() => add(product.handle, product.options[0])}
+                        onClick={() => add(product.handle, variants(product)[0])}
                         className="flex-1 rounded-full bg-accent px-4 py-3 text-sm font-bold tracking-tight text-accent-fg transition-transform duration-300 enabled:hover:scale-[1.03] disabled:cursor-not-allowed disabled:opacity-40"
                     >
                         {product.inStock ? "Add to cart" : "Sold out"}

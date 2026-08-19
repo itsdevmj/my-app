@@ -54,8 +54,9 @@ export type ProductPatch = Partial<
         | "compareAtPriceNaira"
         | "badge"
         | "inStock"
+        | "optionLabel"
     >
-> & { images?: string[] };
+> & { images?: string[]; options?: string[] };
 
 /** Which backend is live, surfaced in the admin so it is never a mystery. */
 export const storageBackend = () => (isSupabaseConfigured() ? "supabase" : "local");
@@ -656,6 +657,8 @@ export async function saveProductRecord(handle: string, patch: ProductPatch) {
         if ("badge" in patch) update.badge = patch.badge ?? null;
         if ("inStock" in patch) update.in_stock = patch.inStock;
         if ("images" in patch) update.images = patch.images;
+        if ("optionLabel" in patch) update.option_label = patch.optionLabel;
+        if ("options" in patch) update.options = patch.options;
 
         const { error, count } = await supabaseAdmin()
             .from("products")

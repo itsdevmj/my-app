@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import type { Product } from "@/app/lib/shop";
+import { DEFAULT_VARIANT, type Product } from "@/app/lib/shop";
 import { saveProduct, type ActionState } from "@/app/admin/actions";
 import { Field, ImagePicker, Result, Submit, inputClass } from "@/app/admin/ui";
 
@@ -19,6 +19,13 @@ export function ProductEditor({
     /* Existing images post back as hidden inputs. Removing one here is what
        actually deletes it on save, so nothing changes until you submit. */
     const [images, setImages] = useState<string[]>([...product.images]);
+
+    /* The implicit single variant is stored, but shown as an empty list so the
+       field round-trips to the same value it started from. */
+    const optionsValue =
+        product.options.length === 1 && product.options[0] === DEFAULT_VARIANT
+            ? ""
+            : product.options.join("\n");
 
     return (
         <form action={formAction}>
@@ -165,6 +172,37 @@ export function ProductEditor({
                     />
                     <span className="text-sm font-semibold">In stock</span>
                 </label>
+            </section>
+
+            {/* ---- options ---- */}
+            <section className="panel mt-4 rounded-xl p-5">
+                <h2 className="text-sm font-extrabold tracking-tight">Options</h2>
+                <p className="mt-1 text-xs leading-relaxed text-fg-dim">
+                    The choice a buyer makes before adding to the cart, such as a size or a
+                    licence tier. Leave the list empty and the product is sold as
+                    “{DEFAULT_VARIANT}” with no picker shown.
+                </p>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <Field label="Option label" hint="For example: Licence, Size, Colour, or Format.">
+                        <input
+                            name="optionLabel"
+                            defaultValue={product.optionLabel}
+                            maxLength={40}
+                            placeholder="Size"
+                            className={inputClass}
+                        />
+                    </Field>
+                    <Field label="Options" hint="One per line, or separated by commas.">
+                        <textarea
+                            name="options"
+                            defaultValue={optionsValue}
+                            rows={4}
+                            placeholder={"A3\nA2\nA1"}
+                            className={`${inputClass} resize-y`}
+                        />
+                    </Field>
+                </div>
             </section>
 
             <div className="mt-6 flex items-center gap-4">

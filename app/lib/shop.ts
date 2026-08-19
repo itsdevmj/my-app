@@ -358,6 +358,17 @@ export const price = (priceNaira: number) => FORMATTER.format(priceNaira);
 export const findProduct = (handle: string) =>
     PRODUCTS.find((p) => p.handle === handle);
 
+/**
+ * Variant used when a product was saved without any options. Every cart line
+ * and order code needs a non-empty variant, so a product with no variant axis
+ * still has exactly one implicit choice.
+ */
+export const DEFAULT_VARIANT = "Standard";
+
+/** Never empty, so `variants(product)[0]` is always a usable variant. */
+export const variants = (product: Product): readonly string[] =>
+    product.options.length > 0 ? product.options : [DEFAULT_VARIANT];
+
 export const countIn = (category: ShopCategory) =>
     category === "All"
         ? PRODUCTS.length

@@ -40,7 +40,7 @@ import {
     saveStudio,
     updateProject,
 } from "@/app/lib/content-store";
-import type { Product } from "@/app/lib/shop";
+import { DEFAULT_VARIANT, variants, type Product } from "@/app/lib/shop";
 import {
     UploadError,
     deleteManagedUpload,
@@ -84,6 +84,16 @@ const list = (value: string) =>
         .map((item) => item.trim())
         .filter(Boolean)
         .slice(0, 40);
+
+/**
+ * Variant options for a product. Never empty: a product with no variant axis
+ * still needs one option, because every cart line and WhatsApp order code
+ * carries a variant.
+ */
+const variantList = (formData: FormData) => {
+    const options = list(text(formData, "options"));
+    return options.length > 0 ? options : [DEFAULT_VARIANT];
+};
 
 const selectedIds = (formData: FormData) =>
     [...new Set(formData.getAll("ids").map(String).map((id) => id.trim()).filter(Boolean))];
@@ -251,7 +261,7 @@ export async function readWhatsAppOrder(
                 name: product.name,
                 image: product.images[0],
                 variant: item.variant,
-                variantValid: product.options.includes(item.variant),
+                variantValid: variants(product).includes(item.variant),
                 qty: item.qty,
                 unitPriceNaira: product.priceNaira,
                 lineTotalNaira: product.priceNaira * item.qty,
@@ -482,6 +492,8 @@ export async function saveProduct(
                 badge: text(formData, "badge") || undefined,
                 inStock: formData.get("inStock") === "on",
                 images,
+                optionLabel: text(formData, "optionLabel") || current.optionLabel,
+                options: variantList(formData),
             });
         } catch (error) {
             await discardUpload(uploaded);
@@ -549,7 +561,7 @@ export async function createProduct(
             description: text(formData, "description"),
             includes: list(text(formData, "includes")),
             optionLabel: text(formData, "optionLabel") || (formData.get("digital") === "on" ? "Licence" : "Size"),
-            options: list(text(formData, "options")),
+            options: variantList(formData),
             inStock: formData.get("inStock") === "on",
         };
 

@@ -7,7 +7,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { price, type Product } from "@/app/lib/shop";
+import { price, variants, type Product } from "@/app/lib/shop";
 import { useCart } from "../cart";
 
 export function ProductGallery({ product }: { product: Product }) {
@@ -37,8 +37,8 @@ export function ProductGallery({ product }: { product: Product }) {
                                 aria-label={`Show image ${i + 1}`}
                                 aria-current={i === shown}
                                 className={`media relative size-20 rounded-lg transition-opacity duration-200 ${i === shown
-                                        ? "ring-2 ring-accent ring-offset-2 ring-offset-bg"
-                                        : "opacity-60 hover:opacity-100"
+                                    ? "ring-2 ring-accent ring-offset-2 ring-offset-bg"
+                                    : "opacity-60 hover:opacity-100"
                                     }`}
                             >
                                 <Image src={src} alt="" fill sizes="80px" className="object-cover" />
@@ -53,7 +53,9 @@ export function ProductGallery({ product }: { product: Product }) {
 
 export function BuyBox({ product }: { product: Product }) {
     const { add, whatsappUrl } = useCart();
-    const [variant, setVariant] = useState(product.options[0]);
+    /* Products saved without options still need one variant to order against. */
+    const options = variants(product);
+    const [variant, setVariant] = useState(options[0]);
     const [qty, setQty] = useState(1);
     const orderUrl = whatsappUrl([{ handle: product.handle, variant, qty }]);
 
@@ -85,31 +87,33 @@ export function BuyBox({ product }: { product: Product }) {
                 {product.description}
             </p>
 
-            {/* variant */}
-            <fieldset className="mt-8">
-                <legend className="text-sm font-extrabold tracking-tight">
-                    {product.optionLabel}
-                </legend>
-                <div className="mt-3 flex flex-wrap gap-2">
-                    {product.options.map((option) => {
-                        const on = option === variant;
-                        return (
-                            <button
-                                key={option}
-                                type="button"
-                                onClick={() => setVariant(option)}
-                                aria-pressed={on}
-                                className={`rounded-full border px-4 py-2.5 text-sm font-semibold tracking-tight transition-colors duration-200 ${on
+            {/* variant — hidden when there is nothing to choose between */}
+            {product.options.length > 1 && (
+                <fieldset className="mt-8">
+                    <legend className="text-sm font-extrabold tracking-tight">
+                        {product.optionLabel}
+                    </legend>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        {options.map((option) => {
+                            const on = option === variant;
+                            return (
+                                <button
+                                    key={option}
+                                    type="button"
+                                    onClick={() => setVariant(option)}
+                                    aria-pressed={on}
+                                    className={`rounded-full border px-4 py-2.5 text-sm font-semibold tracking-tight transition-colors duration-200 ${on
                                         ? "border-accent bg-accent text-accent-fg"
                                         : "border-line-strong text-fg-muted hover:border-accent hover:text-accent"
-                                    }`}
-                            >
-                                {option}
-                            </button>
-                        );
-                    })}
-                </div>
-            </fieldset>
+                                        }`}
+                                >
+                                    {option}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </fieldset>
+            )}
 
             {/* qty + add */}
             <div className="mt-8 flex flex-wrap items-center gap-3">
